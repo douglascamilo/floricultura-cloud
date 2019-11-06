@@ -6,17 +6,19 @@ import org.springframework.web.client.RestTemplate
 import org.springframework.http.HttpMethod
 import br.com.alura.microservice.loja.controller.dto.InfoFornecedorDTO
 import org.springframework.http.ResponseEntity
+import org.springframework.beans.factory.annotation.Autowired
 
 @Service
 class CompraService {
+	@Autowired private lateinit var restTemplate: RestTemplate
 
 	fun realizaCompra(compra: CompraDTO) {
-		val response: ResponseEntity<InfoFornecedorDTO> = RestTemplate().exchange(
-			"http://localhost:8081/info/${compra.endereco.estado}",
+		val response: ResponseEntity<InfoFornecedorDTO> = restTemplate.exchange(
+			"http://fornecedor/info/${compra.endereco.estado}",
 			HttpMethod.GET,
 			null,
 			InfoFornecedorDTO::class.java);
 
-		
+		System.out.println("Endereco: ${response.getBody()?.endereco}")
 	}
 }

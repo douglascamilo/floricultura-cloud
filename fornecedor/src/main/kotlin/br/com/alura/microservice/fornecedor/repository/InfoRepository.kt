@@ -1,8 +1,8 @@
 package br.com.alura.microservice.fornecedor.repository
 
-import org.springframework.stereotype.Repository
-import org.springframework.data.repository.CrudRepository
 import br.com.alura.microservice.fornecedor.model.InfoFornecedor
+import org.springframework.data.repository.CrudRepository
+import org.springframework.stereotype.Repository
 
 @Repository
 interface InfoRepository: CrudRepository<InfoFornecedor, Long> {
