@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import br.com.alura.microservice.loja.model.Compra
 import org.slf4j.LoggerFactory
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 
 @RestController
 @RequestMapping("/compra")
@@ -23,5 +25,10 @@ class CompraController {
 	fun realizaCompra(@RequestBody compra: CompraDTO): Compra {
 		LOG.info("Realizando compra: ${compra}")
 		return compraService.realizaCompra(compra)
+	}
+
+	@GetMapping("/{id}")
+	fun buscaCompra(@PathVariable("id") id: Long): Compra {
+		return compraService.buscaCompra(id);
 	}
 }

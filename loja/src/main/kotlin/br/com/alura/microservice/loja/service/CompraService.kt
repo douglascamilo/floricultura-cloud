@@ -11,29 +11,32 @@ import br.com.alura.microservice.loja.client.FornecedorClient
 import br.com.alura.microservice.loja.model.Compra
 import org.slf4j.LoggerFactory
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand
+import br.com.alura.microservice.loja.repository.CompraRepository
+import java.util.Optional
+import java.lang.Exception
 
 @Service
 open class CompraService {
-//	private val LOG = LoggerFactory.getLogger(CompraService::class.java)
-
 	@Autowired lateinit var fornecedorClient: FornecedorClient
+	@Autowired lateinit var compraRepository: CompraRepository
 
-	@HystrixCommand(fallbackMethod = "realizaCompraFallback")
+	@HystrixCommand(threadPoolKey = "buscaCompraThreadPool")
+	open fun buscaCompra(id: Long) = compraRepository.findById(id).orElse(Compra())
+	
+	@HystrixCommand(fallbackMethod = "realizaCompraFallback", threadPoolKey = "realizaCompraThreadPool")
 	open fun realizaCompra(compra: CompraDTO): Compra {
 		val estado = compra.endereco.estado
 
-//		LOG.info("Buscando informacoes de fornecedor de ${estado}")
 		val info = fornecedorClient.getInfoPor(estado)
-
-//		LOG.info("Realizando um pedido...")
 		val pedido = fornecedorClient.realizaPedido(compra.itens)
-		
-		Thread.sleep(2000);
 
-		return Compra(pedido.id, pedido.tempoDePreparo, compra.endereco.toString())
+		val compraSalva = Compra(pedido.id, pedido.tempoDePreparo, compra.endereco.toString())
+		compraRepository.save(compraSalva)
+
+		return compraSalva
 	}
 
 	open fun realizaCompraFallback(compra: CompraDTO): Compra {
-		return Compra(0, 0, "Deu ruim...")
+		return Compra()
 	}
 }
