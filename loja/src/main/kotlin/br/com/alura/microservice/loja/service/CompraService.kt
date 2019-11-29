@@ -10,22 +10,30 @@ import org.springframework.beans.factory.annotation.Autowired
 import br.com.alura.microservice.loja.client.FornecedorClient
 import br.com.alura.microservice.loja.model.Compra
 import org.slf4j.LoggerFactory
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand
 
 @Service
-class CompraService {
-	private val LOG = LoggerFactory.getLogger(CompraService::class.java)
+open class CompraService {
+//	private val LOG = LoggerFactory.getLogger(CompraService::class.java)
 
-	@Autowired private lateinit var fornecedorClient: FornecedorClient
+	@Autowired lateinit var fornecedorClient: FornecedorClient
 
-	fun realizaCompra(compra: CompraDTO): Compra {
+	@HystrixCommand(fallbackMethod = "realizaCompraFallback")
+	open fun realizaCompra(compra: CompraDTO): Compra {
 		val estado = compra.endereco.estado
-		
-		LOG.info("Buscando informacoes de fornecedor de ${estado}")
+
+//		LOG.info("Buscando informacoes de fornecedor de ${estado}")
 		val info = fornecedorClient.getInfoPor(estado)
 
-		LOG.info("Realizando um pedido...")
+//		LOG.info("Realizando um pedido...")
 		val pedido = fornecedorClient.realizaPedido(compra.itens)
+		
+		Thread.sleep(2000);
 
-		return Compra(pedido.id, pedido.tempoDePreparo, compra.endereco.toString());
+		return Compra(pedido.id, pedido.tempoDePreparo, compra.endereco.toString())
+	}
+
+	open fun realizaCompraFallback(compra: CompraDTO): Compra {
+		return Compra(0, 0, "Deu ruim...")
 	}
 }
