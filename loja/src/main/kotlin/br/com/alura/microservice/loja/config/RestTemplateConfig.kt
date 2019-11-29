@@ -6,11 +6,11 @@ import org.springframework.context.annotation.Bean
 import org.springframework.cloud.client.loadbalancer.LoadBalanced
 
 @Configuration
-class RestTemplateConfig {
+open class RestTemplateConfig {
 	
 	@Bean
 	@LoadBalanced
-	fun createRestTemplate(): RestTemplate {
+	open fun createRestTemplate(): RestTemplate {
 		return RestTemplate()
 	}
 }
