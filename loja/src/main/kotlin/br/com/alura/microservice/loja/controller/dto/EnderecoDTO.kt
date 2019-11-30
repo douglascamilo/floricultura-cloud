@@ -1,7 +1,11 @@
 package br.com.alura.microservice.loja.controller.dto
 
-data class EnderecoDTO(
+class EnderecoDTO(
 	val rua: String,
 	val numero: Int,
-	val estado: String
-)
+	val estado: String) {
+
+	override fun toString(): String {
+		return "${rua}, ${numero} - ${estado}"
+	}
+}

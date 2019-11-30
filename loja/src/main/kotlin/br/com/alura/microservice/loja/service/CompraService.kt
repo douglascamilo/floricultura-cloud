@@ -14,10 +14,17 @@ import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand
 import br.com.alura.microservice.loja.repository.CompraRepository
 import java.util.Optional
 import java.lang.Exception
+import br.com.alura.microservice.loja.controller.dto.InfoEntregaDTO
+import br.com.alura.microservice.loja.controller.dto.VoucherDTO
+import br.com.alura.microservice.loja.client.TransportadorClient
+import java.time.LocalDate
+import br.com.alura.microservice.loja.controller.dto.ItemDaCompraDTO
+import br.com.alura.microservice.loja.controller.dto.DadosFornecedorDTO
 
 @Service
 open class CompraService {
 	@Autowired lateinit var fornecedorClient: FornecedorClient
+	@Autowired lateinit var transportadorClient: TransportadorClient
 	@Autowired lateinit var compraRepository: CompraRepository
 
 	@HystrixCommand(threadPoolKey = "buscaCompraThreadPool")
@@ -25,18 +32,41 @@ open class CompraService {
 	
 	@HystrixCommand(fallbackMethod = "realizaCompraFallback", threadPoolKey = "realizaCompraThreadPool")
 	open fun realizaCompra(compra: CompraDTO): Compra {
-		val estado = compra.endereco.estado
+		val dadosFornecedor = this.obterDadosFornecedorDTO(compra)
+		val voucher = this.obterDadosTransportador(dadosFornecedor, compra)
 
-		val info = fornecedorClient.getInfoPor(estado)
-		val pedido = fornecedorClient.realizaPedido(compra.itens)
-
-		val compraSalva = Compra(pedido.id, pedido.tempoDePreparo, compra.endereco.toString())
-		compraRepository.save(compraSalva)
-
-		return compraSalva
+		return this.salvarCompra(dadosFornecedor, compra, voucher)
 	}
 
 	open fun realizaCompraFallback(compra: CompraDTO): Compra {
 		return Compra()
+	}
+	
+	private fun obterDadosFornecedorDTO(compra: CompraDTO): DadosFornecedorDTO {
+		val info = fornecedorClient.getInfoPor(compra.endereco.estado)
+		val pedido = fornecedorClient.realizaPedido(compra.itens)
+
+		return DadosFornecedorDTO(info, pedido)
+	}
+	
+	private fun obterDadosTransportador(dadosFornecedor: DadosFornecedorDTO, compra: CompraDTO): VoucherDTO {
+		val entrega = InfoEntregaDTO(
+			pedidoId = dadosFornecedor.pedido.id,
+			dataParaEntrega = LocalDate.now().plusDays(dadosFornecedor.pedido.tempoDePreparo.toLong()),
+			enderecoOrigem = dadosFornecedor.info.endereco,
+			enderecoDestino = compra.endereco.toString())
+
+		return transportadorClient.reservaEntrega(entrega)
+	}
+	
+	private fun salvarCompra(dadosFornecedor: DadosFornecedorDTO, compra: CompraDTO, voucher: VoucherDTO): Compra {
+		val compraSalva = Compra(
+			pedidoId = dadosFornecedor.pedido.id,
+			tempoDePreparo = dadosFornecedor.pedido.tempoDePreparo,
+			enderecoDestino = compra.endereco.toString(),
+			dataParaEntrega = voucher.previsaoParaEntrega,
+			voucher = voucher.numero)
+
+		return compraRepository.save(compraSalva)
 	}
 }
